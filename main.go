@@ -18,10 +18,13 @@ import (
 )
 
 func main() {
+	// =========================================================================
+	// App Starting
 	log.Println("Server is running on localhost:8080")
-
 	defer log.Println("Server stopped")
 
+	// =========================================================================
+	// Start Database
 	db, err := openDB()
 	if err != nil {
 		log.Fatalf("error: connecting to db: %s", err)
@@ -48,15 +51,21 @@ func main() {
 		return
 	}
 
+	service := Products{db: db}
+
+	// =========================================================================
+	// Start API Service
 	app := http.Server{
 		Addr:         "localhost:8080",
-		Handler:      http.HandlerFunc(listGames),
+		Handler:      http.HandlerFunc(service.list),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 5 * time.Second,
 	}
 
+	// Make a channel to listen for errors coming from the listener. Use a
+	// buffered channel so the goroutine can exit if we don't collect this error.
 	serverErrors := make(chan error, 1)
-
+	// Start the service listening for requests.
 	go func() {
 		serverErrors <- app.ListenAndServe()
 	}()
@@ -64,6 +73,10 @@ func main() {
 	shutdown := make(chan os.Signal, 1)
 	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
 
+	// =========================================================================
+	// Shutdown
+
+	// Blocking main and waiting for shutdown.
 	select {
 	case err := <-serverErrors:
 		log.Fatalf("error: while serving %s", err)
@@ -83,23 +96,36 @@ func main() {
 		}
 	}
 }
-
-type game struct {
-	Name           string `json:"name"`
-	PriceInDollars int    `json:"priceInDollars"`
-	MyRating       int    `json:"myRating"`
+// Product is an item we sell.
+type Product struct {
+	ID          string    `db:"product_id" json:"id"`
+	Name        string    `db:"name" json:"name"`
+	Cost        int       `db:"cost" json:"cost"`
+	Quantity    int       `db:"quantity" json:"quantity"`
+	DateCreated time.Time `db:"date_created" json:"date_created"`
+	DateUpdated time.Time `db:"date_updated" json:"date_updated"`
 }
 
-func listGames(w http.ResponseWriter, r *http.Request) {
-	gList := []game{}
+// Products holds business logic related to Products.
+type Products struct {
+	db *sqlx.DB
+}
 
-	if true {
-		gList = append(gList,
-			game{"Fifa20", 60, 2},
-			game{"Apex Legends", 0, 5})
+// List gets all Products from the database then encodes them in a
+// response to the client.
+func (p *Products) list(w http.ResponseWriter, r *http.Request) {
+	pList := []Product{}
+
+	const q = `SELECT * FROM products`
+
+	if err := p.db.Select(&pList, q); err != nil {
+		log.Printf("error: selecting products: %s", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 
-	data, err := json.Marshal(gList)
+
+	data, err := json.Marshal(pList)
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
