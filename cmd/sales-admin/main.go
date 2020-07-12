@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/VamsiDevalla/garage_sale/internal/platform/database"
-	"github.com/VamsiDevalla/garage_sale/schema"
+	"github.com/VamsiDevalla/garage_sale/internal/schema"
 )
 
 func main() {
