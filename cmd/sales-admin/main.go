@@ -5,15 +5,44 @@ import (
 	"log"
 	"os"
 
+	"github.com/VamsiDevalla/garage_sale/internal/platform/conf"
 	"github.com/VamsiDevalla/garage_sale/internal/platform/database"
 	"github.com/VamsiDevalla/garage_sale/internal/schema"
 )
 
 func main() {
 
+	var cfg struct {
+		DB struct {
+			User       string `conf:"default:postgres"`
+			Password   string `conf:"default:postgres,noprint"`
+			Host       string `conf:"default:localhost"`
+			Path       string `conf:"default:postgres"`
+			DisableSSL bool   `conf:"default:true"`
+		}
+	}
+
+	if err := conf.Parse(os.Args[1:], "SALES", &cfg); err != nil {
+		if err == conf.ErrHelpWanted {
+			usage, err := conf.Usage("SALES", &cfg)
+			if err != nil {
+				log.Fatalf("error : generating config usage : %v", err)
+			}
+			log.Println(usage)
+			return
+		}
+		log.Fatalf("error: parsing config: %s", err)
+	}
+
 	// =========================================================================
 	// Start Database
-	db, err := database.Open()
+	db, err := database.Open(database.Config{
+		User:       cfg.DB.User,
+		Password:   cfg.DB.Password,
+		Host:       cfg.DB.Host,
+		Path:       cfg.DB.Path,
+		DisableSSL: cfg.DB.DisableSSL,
+	})
 	if err != nil {
 		log.Fatalf("error: connecting to db: %s", err)
 	}
