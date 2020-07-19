@@ -82,3 +82,42 @@ This binary can be used to run curd operations against the garage sale items
     - ENV Variables
     - Command line Arguments / flags
   - do you want the ability to update the config with out restarting the server.
+
+- Caution when using `log.Fatal`  
+  - log.Fatal logs the error and calls the `os.Exit(1)` function
+  - Because of this `defer functions` wouldn't be triggered
+  - To main the integrity we always let the defer functions to run
+  - Instead we could just return the error from the function and let the calling function take care of the exit.
+
+  ```go
+  package main
+  
+  import (
+    "log"
+    "os"
+    "github.com/pkg/errors"
+  )
+    // in the following defer functions won't be executed
+  /*
+  func main() {
+    defer close()
+    log.Fatal("error: shutting down", err)
+  }
+  */
+
+   // defer functions inside run will be executed even then there is a fatal error
+  func main() {
+    // defer close(some file/ http response)
+    if err := run(); err != nil {
+      log.Print("error: shutting down", err)
+      os.Exit(1)
+    }
+  }
+
+  func run() error {
+    if err := error.New("Test error"); err!= nil {
+      return errors.Wrap(err, "error while running running")
+    }
+    return nil
+  }
+  ```
