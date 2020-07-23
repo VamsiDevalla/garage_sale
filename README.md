@@ -113,7 +113,7 @@ This binary can be used to run curd operations against the garage sale items
       os.Exit(1)
     }
   }
-
+  // test
   func run() error {
     if err := error.New("Test error"); err!= nil {
       return errors.Wrap(err, "error while running running")
