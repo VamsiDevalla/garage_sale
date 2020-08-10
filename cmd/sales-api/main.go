@@ -9,10 +9,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/VamsiDevalla/garage_sale/cmd/sales-api/internal/handlers"
 	"github.com/VamsiDevalla/garage_sale/internal/platform/conf"
 	"github.com/VamsiDevalla/garage_sale/internal/platform/database"
+	"github.com/pkg/errors"
 )
 
 func main() {
@@ -23,6 +23,9 @@ func main() {
 }
 
 func run() error {
+
+	// creating a logger
+	log := log.New(os.Stdout, "SALES : ", log.LstdFlags)
 
 	// =========================================================================
 	// Configuration
@@ -81,7 +84,10 @@ func run() error {
 	}
 	defer db.Close()
 
-	productHandler := handlers.Products{DB: db}
+	productHandler := handlers.Products{
+		DB: db, 
+		Log: log,
+	}
 
 	// =========================================================================
 	// Start API Service
@@ -124,5 +130,5 @@ func run() error {
 			return errors.Wrap(err, "could not stop server gracefully")
 		}
 	}
-	return nil;
+	return nil
 }
