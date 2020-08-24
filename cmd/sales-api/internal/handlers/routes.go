@@ -4,10 +4,9 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/VamsiDevalla/garage_sale/internal/platform/web"
 	"github.com/jmoiron/sqlx"
 )
-
-var sm = http.NewServeMux()
 
 // API return router for the app
 func API(logger *log.Logger, db *sqlx.DB) http.Handler {
@@ -16,8 +15,10 @@ func API(logger *log.Logger, db *sqlx.DB) http.Handler {
 		log: logger,
 	}
 
-	sm.HandleFunc("/v1/products", productHandler.List)
-	sm.HandleFunc("/v1/products/a2b0639f-2cc6-44b8-b97b-15d69dbb511e", productHandler.Retrive)
-	sm.HandleFunc("/v1/products/create", productHandler.Create)
-	return sm
+	a := web.NewApp(logger)
+
+	a.Handle(http.MethodGet, "/v1/products", productHandler.List)
+	a.Handle(http.MethodGet, "/v1/products/{id}", productHandler.Retrive)
+	a.Handle(http.MethodPost, "/v1/products", productHandler.Create)
+	return a
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/VamsiDevalla/garage_sale/internal/product"
+	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -43,7 +44,9 @@ func (p *Products) List(w http.ResponseWriter, r *http.Request) {
 
 // Retrive gets a product from service layer and encodes it for the client respons.
 func (p *Products) Retrive(w http.ResponseWriter, r *http.Request) {
-	product, err := product.Retrive(p.db, "a2b0639f-2cc6-44b8-b97b-15d69dbb511e")
+	id := chi.URLParam(r, "id")
+
+	product, err := product.Retrive(p.db, id)
 
 	if err != nil {
 		p.log.Printf("error: listing products: %s", err)
@@ -67,12 +70,6 @@ func (p *Products) Retrive(w http.ResponseWriter, r *http.Request) {
 
 // Create decode the body of json to new product and saves it to the db
 func (p *Products) Create(w http.ResponseWriter, r *http.Request) {
-
-	if method := r.Method; method != http.MethodPost {
-		p.log.Println("invalid method for creating a product")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		return
-	}
 	var np product.NewProduct
 	json.NewDecoder(r.Body).Decode(&np)
 
