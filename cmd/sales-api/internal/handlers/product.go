@@ -1,14 +1,15 @@
 package handlers
 
 import (
-	"encoding/json"
 	"log"
 	"net/http"
 	"time"
 
+	"github.com/VamsiDevalla/garage_sale/internal/platform/web"
 	"github.com/VamsiDevalla/garage_sale/internal/product"
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 // Products defines all of the handlers related to products. It holds the
@@ -20,77 +21,47 @@ type Products struct {
 
 // List gets all products from the service layer and encodes them for the
 // client response.
-func (p *Products) List(w http.ResponseWriter, r *http.Request) {
+func (p *Products) List(w http.ResponseWriter, r *http.Request) error {
 	list, err := product.List(p.db)
 	if err != nil {
-		p.log.Printf("error: listing products: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return errors.Wrapf(err, "List handler :")
 	}
 
-	data, err := json.Marshal(list)
-	if err != nil {
-		p.log.Println("error marshalling result", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(data); err != nil {
-		p.log.Println("error writing result", err)
-	}
+	return web.Respond(w, list, http.StatusOK)
 }
 
 // Retrive gets a product from service layer and encodes it for the client respons.
-func (p *Products) Retrive(w http.ResponseWriter, r *http.Request) {
+func (p *Products) Retrive(w http.ResponseWriter, r *http.Request) error {
 	id := chi.URLParam(r, "id")
 
-	product, err := product.Retrive(p.db, id)
+	prod, err := product.Retrive(p.db, id)
 
 	if err != nil {
-		p.log.Printf("error: listing products: %s", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		switch err {
+		case product.ErrNotFound:
+			return web.NewRequestError(err, http.StatusNotFound)
+		case product.ErrInvalidID:
+			return web.NewRequestError(err, http.StatusBadRequest)
+		default:
+			return errors.Wrapf(err, "Retrive Handler : getting product %q", id)
+		}
 	}
 
-	data, err := json.Marshal(product)
-	if err != nil {
-		p.log.Println("error marshalling result", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	if _, err := w.Write(data); err != nil {
-		p.log.Println("error writing result", err)
-	}
+	return web.Respond(w, prod, http.StatusOK)
 }
 
 // Create decode the body of json to new product and saves it to the db
-func (p *Products) Create(w http.ResponseWriter, r *http.Request) {
+func (p *Products) Create(w http.ResponseWriter, r *http.Request) error {
 	var np product.NewProduct
-	json.NewDecoder(r.Body).Decode(&np)
 
-	product, err := product.Create(p.db, np, time.Now())
+	if err := web.Decode(r, &np); err != nil {
+		return web.NewRequestError(err, http.StatusBadRequest)
+	}
+
+	prod, err := product.Create(p.db, np, time.Now())
 
 	if err != nil {
-		p.log.Println("creating product", "error", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
+		return errors.Wrapf(err, "Create Handler :")
 	}
-
-	data, err := json.Marshal(product)
-	if err != nil {
-		p.log.Println("error marshalling result", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusCreated)
-	if _, err := w.Write(data); err != nil {
-		p.log.Println("error writing result", err)
-	}
+	return web.Respond(w, prod, http.StatusOK)
 }

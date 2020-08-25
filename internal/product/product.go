@@ -1,11 +1,20 @@
 package product
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+)
+
+var (
+	// ErrNotFound is used when a specific Product is requested but does not exist.
+	ErrNotFound = errors.New("product not found")
+
+	// ErrInvalidID is used when an invalid UUID is provided.
+	ErrInvalidID = errors.New("ID is not in its proper form")
 )
 
 // List gets all Products from the database.
@@ -23,11 +32,20 @@ func List(db *sqlx.DB) ([]Product, error) {
 
 // Retrive gets single Product with matching id
 func Retrive(db *sqlx.DB, id string) (*Product, error) {
+
+	if _, err := uuid.Parse(id); err != nil {
+		return nil, ErrInvalidID
+	}
+
 	product := Product{}
 	const q = `SELECT product_id, name, cost, quantity, date_updated, date_created FROM products WHERE product_id=$1`
 
 	if err := db.Get(&product, q, id); err != nil {
-		return nil, errors.Wrapf(err, "selecting a single product ", id)
+		if err == sql.ErrNoRows {
+			return nil, ErrNotFound
+		}
+
+		return nil, errors.Wrap(err, "selecting single product")
 	}
 
 	return &product, nil
