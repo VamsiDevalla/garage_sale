@@ -21,6 +21,7 @@ This binary can be used to run curd operations against the garage sale items
 - [x] Connect to a database for permanent storage
 - [x] Package oriented design
 - [x] Reading config from external source
+- [ ] Request Cancellation (timeout/client disconnected)
 - [ ] Logging
 - [ ] Error Handling
 - [ ] Testing and benchmarking
