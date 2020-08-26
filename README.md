@@ -121,3 +121,10 @@ This binary can be used to run curd operations against the garage sale items
     return nil
   }
   ```
+
+- `Context Aware` Library functions:
+  - When choosing a library check if the library has context aware functions.
+    - for instance we pass r.Context() for http requests to db library so that the db stops processing the request if the client is disconnected for some reason
+
+- `Null/nil conversions`:
+  - When db sends null/nil values to go, we will get error because of type difference, we should be careful if there are possibilities for db to send `nil for some non-pointer fields`
